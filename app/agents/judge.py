@@ -44,6 +44,7 @@ class JudgeAgent:
             ),
             temperature=0.0,
             max_tokens=250,
+            allow_repair=True,
         )
 
         try:

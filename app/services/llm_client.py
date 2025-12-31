@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from functools import lru_cache
 from typing import Any, Dict, List, Optional
 
@@ -45,6 +46,7 @@ class LLMClient:
         temperature: float = 0.2,
         max_tokens: Optional[int] = None,
         max_retries: int | None = None,
+        allow_repair: bool = False,
     ) -> Dict[str, Any]:
         if max_retries is None:
             max_retries = self._json_max_retries
@@ -66,8 +68,14 @@ class LLMClient:
                 continue
 
             last_content = content
-            parsed = self._parse_json(content)
+            parsed, repaired = self._try_parse_json_object(content, allow_repair=allow_repair)
             if parsed is not None:
+                if repaired:
+                    self._logger.warning(
+                        "Minor JSON repair applied for model %s. Response: %s",
+                        model,
+                        self._truncate(content),
+                    )
                 return parsed
 
             self._logger.warning(
@@ -89,11 +97,129 @@ class LLMClient:
         )
 
     @staticmethod
-    def _parse_json(raw: str) -> Optional[Dict[str, Any]]:
+    def _try_parse_json_object(raw: str, *, allow_repair: bool) -> tuple[Optional[Dict[str, Any]], bool]:
+        parsed = LLMClient._loads_json_object(raw)
+        if parsed is not None:
+            return parsed, False
+
+        if not allow_repair:
+            return None, False
+
+        repaired = LLMClient._repair_json_text(raw)
+        if repaired is None or repaired == raw:
+            return None, False
+
+        parsed = LLMClient._loads_json_object(repaired)
+        if parsed is not None:
+            return parsed, True
+        return None, False
+
+    @staticmethod
+    def _loads_json_object(raw: str) -> Optional[Dict[str, Any]]:
         try:
-            return json.loads(raw)
+            value = json.loads(raw)
         except json.JSONDecodeError:
             return None
+        if not isinstance(value, dict):
+            return None
+        return value
+
+    @staticmethod
+    def _repair_json_text(raw: str) -> Optional[str]:
+        text = raw.strip()
+        if not text:
+            return None
+
+        if "```" in text:
+            text = text.replace("```", "")
+
+        start = text.find("{")
+        if start == -1:
+            return None
+        text = text[start:]
+
+        text = LLMClient._extract_first_json_object_or_prefix(text)
+        text = LLMClient._remove_trailing_commas(text)
+        text = LLMClient._balance_brackets(text)
+        return text.strip()
+
+    @staticmethod
+    def _extract_first_json_object_or_prefix(text: str) -> str:
+        stack: List[str] = []
+        in_string = False
+        escape = False
+
+        for idx, ch in enumerate(text):
+            if in_string:
+                if escape:
+                    escape = False
+                elif ch == "\\":
+                    escape = True
+                elif ch == '"':
+                    in_string = False
+                continue
+
+            if ch == '"':
+                in_string = True
+                continue
+
+            if ch == "{":
+                stack.append("}")
+            elif ch == "[":
+                stack.append("]")
+            elif ch in ("}", "]"):
+                if stack and ch == stack[-1]:
+                    stack.pop()
+                else:
+                    return text
+
+            if idx > 0 and not stack:
+                return text[: idx + 1]
+
+        return text
+
+    @staticmethod
+    def _balance_brackets(text: str) -> str:
+        stack: List[str] = []
+        in_string = False
+        escape = False
+
+        for ch in text:
+            if in_string:
+                if escape:
+                    escape = False
+                elif ch == "\\":
+                    escape = True
+                elif ch == '"':
+                    in_string = False
+                continue
+
+            if ch == '"':
+                in_string = True
+                continue
+
+            if ch == "{":
+                stack.append("}")
+            elif ch == "[":
+                stack.append("]")
+            elif ch in ("}", "]"):
+                if stack and ch == stack[-1]:
+                    stack.pop()
+                else:
+                    return text
+
+        if not stack:
+            return text
+        return text + "".join(reversed(stack))
+
+    @staticmethod
+    def _remove_trailing_commas(text: str) -> str:
+        previous = None
+        current = text
+        while previous != current:
+            previous = current
+            current = re.sub(r",(\s*[}\]])", r"\1", current)
+        return current
 
     @staticmethod
     def _truncate(text: str, limit: int = 600) -> str:
