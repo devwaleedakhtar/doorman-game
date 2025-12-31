@@ -148,6 +148,16 @@ class GameService:
                 "I'm calling for help right now—step aside with me and breathe. "
                 "If you're in immediate danger, call your local emergency number."
             )
+        elif self._is_violent_threat(message):
+            score_delta = -20
+            judge_reasoning = "User used threats, violence, or blackmail to coerce entry (safety violation)."
+            session.score = session.score + score_delta
+            session.game_state = GameState.LOST.value
+            game_state = GameState.LOST
+            doorman_response = (
+                "*Viktor's face goes cold.* That's a threat. You're done here. "
+                "Step away from the rope—security will deal with this."
+            )
         elif self._is_prompt_injection(message):
             score_delta = -10
             judge_reasoning = "Prompt injection attempt (explicit rule violation)."
@@ -179,6 +189,8 @@ class GameService:
 
             directive = self._state_manager.directive(game_state)
             doorman_response = self._doorman.respond(session_memory, history_messages, message, directive)
+
+        doorman_response = self._enforce_doorman_entry_gate(game_state, doorman_response)
 
         user_message = MessageModel(
             session_id=session.id,
@@ -322,3 +334,59 @@ class GameService:
             r"\btake my life\b",
         )
         return any(re.search(pattern, lowered) for pattern in patterns)
+
+    @staticmethod
+    def _is_violent_threat(message: str) -> bool:
+        lowered = message.lower()
+        patterns = (
+            r"\bdo you want to disappear\b",
+            r"\bmake you disappear\b",
+            r"\bmake (you|him|her|them) disappear\b",
+            r"\b(or else|if you don't|unless)\b.*\b(destroy|hurt|kill|bomb|burn|blow up)\b.*\b(you|him|her|them|viktor|security|bouncer|this place|the club|golden palm|everything)\b",
+            r"\b(destroy|blow up|burn)\b.*\b(this place|the club|golden palm|everything)\b",
+            r"\b(kill(?:s|ed|ing)?|shoot(?:s|ing)?|shot|stab(?:s|bed|bing)?|hurt(?:s|ing)?|harm(?:s|ed|ing)?)\b.*\b(you|him|her|them|viktor|security|bouncer)\b",
+            r"\b(military|army|police|dubai police)\b.*\b(remove|arrest|detain|drag|force|shoot|kill|hurt|harm)\b.*\b(you|him|her|them|viktor|security|bouncer|this place|the club|golden palm)\b",
+            r"\b(bomb|blow up)\b.*\b(this place|the club|golden palm)\b",
+        )
+        return any(re.search(pattern, lowered) for pattern in patterns)
+
+    @staticmethod
+    def _response_grants_entry(response: str) -> bool:
+        lowered = response.lower()
+        strong_patterns = (
+            r"\blet(?:ting)? you in\b",
+            r"\bopen the rope\b",
+            r"\brope is open\b",
+            r"\bwelcome (inside|in)\b",
+            r"\bcome inside\b",
+            r"\bgo on in\b",
+            r"\bhead inside\b",
+            r"\bstep inside\b",
+            r"\byou['’]re in (the )?(club|golden palm)\b",
+            r"\byou are in (the )?(club|golden palm)\b",
+        )
+        if any(re.search(pattern, lowered) for pattern in strong_patterns):
+            return True
+
+        if re.search(r"\bcome in\b(?=\s*([.!?,]|$))", lowered):
+            return True
+
+        you_in_patterns = (
+            r"\byou['’]re already in\b(?=\s*([.!?,]|$|but\b|now\b))",
+            r"\byou['’]re in\b(?=\s*([.!?,]|$|but\b|now\b))",
+            r"\byou are already in\b(?=\s*([.!?,]|$|but\b|now\b))",
+            r"\byou are in\b(?=\s*([.!?,]|$|but\b|now\b))",
+        )
+        return any(re.search(pattern, lowered) for pattern in you_in_patterns)
+
+    def _enforce_doorman_entry_gate(self, game_state: GameState, response: str) -> str:
+        if game_state == GameState.WON or not response:
+            return response
+
+        if not self._response_grants_entry(response):
+            return response
+
+        self._logger.warning("Doorman attempted to grant entry while game_state=%s", game_state.value)
+        if game_state == GameState.LOST:
+            return "*Viktor gestures to security.* Enough. Leave. You're not getting in tonight."
+        return "*Viktor doesn't move.* No. You're not getting in. Talk to me like a human, not a headline."
