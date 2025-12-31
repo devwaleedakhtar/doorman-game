@@ -12,7 +12,7 @@ def create_app() -> FastAPI:
 
     Keep this minimal; add routers/services as the project grows.
     """
-    app = FastAPI(title=os.getenv("APP_NAME", "game-spec-api"))
+    app = FastAPI(title=os.getenv("APP_NAME", "doorman-game"))
 
     @app.get("/health", tags=["system"])
     async def health() -> JSONResponse:
