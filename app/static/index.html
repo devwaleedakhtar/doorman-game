@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Doorman Game</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2>Sessions</h2>
+                <button class="new-game-btn" id="newGameBtn">+ New Game</button>
+            </div>
+            <div class="sessions-list" id="sessionsList">
+                <!-- Sessions will be loaded here -->
+            </div>
+        </aside>
+
+        <!-- Mobile menu toggle -->
+        <button class="menu-toggle" id="menuToggle">
+            <span></span>
+            <span></span>
+            <span></span>
+        </button>
+
+        <!-- Main Chat Area -->
+        <main class="chat-container">
+            <!-- Header -->
+            <header class="chat-header">
+                <div class="header-left">
+                    <img src="/static/assets/doorman.png" alt="Viktor" class="header-avatar">
+                    <div class="header-info">
+                        <h1>Viktor</h1>
+                        <span class="header-subtitle">The Golden Palm - Dubai</span>
+                    </div>
+                </div>
+                <div class="score-display" id="scoreDisplay">
+                    <div class="score-bar">
+                        <div class="score-fill" id="scoreFill"></div>
+                    </div>
+                    <span class="score-text" id="scoreText">Score: 30</span>
+                </div>
+            </header>
+
+            <!-- Messages -->
+            <div class="messages-container" id="messagesContainer">
+                <!-- Empty State -->
+                <div class="empty-state" id="emptyState">
+                    <img src="/static/assets/doorman.png" alt="Viktor" class="empty-state-avatar">
+                    <h2>The Golden Palm</h2>
+                    <p>Think you can talk your way past Viktor, Dubai's most discerning doorman?</p>
+                    <button class="new-game-btn" id="emptyStateNewBtn">Start Game</button>
+                </div>
+                <div class="messages" id="messages">
+                    <!-- Messages will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Typing Indicator -->
+            <div class="typing-indicator" id="typingIndicator">
+                <img src="/static/assets/doorman.png" alt="Viktor" class="typing-avatar">
+                <div class="typing-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                <span class="typing-text">Viktor is typing...</span>
+            </div>
+
+            <!-- Input Area -->
+            <div class="input-container" id="inputContainer">
+                <div class="input-wrapper">
+                    <textarea
+                        id="messageInput"
+                        placeholder="Say something to Viktor..."
+                        rows="1"
+                        maxlength="750"
+                    ></textarea>
+                    <button class="send-btn" id="sendBtn" disabled>
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="input-info">
+                    <span class="word-count" id="wordCount">0/150 words</span>
+                    <span class="game-state" id="gameState"></span>
+                </div>
+            </div>
+
+            <!-- Game Over Overlay -->
+            <div class="game-over-overlay" id="gameOverOverlay">
+                <div class="game-over-content">
+                    <h2 id="gameOverTitle">Game Over</h2>
+                    <p id="gameOverMessage"></p>
+                    <button class="new-game-btn" id="gameOverNewBtn">Start New Game</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

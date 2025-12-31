@@ -11,7 +11,24 @@ dev/
 .venv/
 venv/
 
+app.log
 
 .agents/
+.agents.ignore/
 
+__pycache__/
 app/__pycache__/
+app/agents/__pycache__/
+app/config/__pycache__/
+app/database/__pycache__/
+app/models/__pycache__/
+app/repositories/__pycache__/
+app/services/__pycache__/
+app/schemas/__pycache__/
+app/tests/__pycache__/
+app/utils/__pycache__/
+app/utilities/__pycache__/
+app/utilities/__pycache__/
+app/main.pyc
+app/agents/__init__.pyc
+app/config/__init__.pyc
