@@ -223,8 +223,11 @@ async function sendMessage() {
         state.score = data.current_score;
         state.gameState = data.game_state;
 
-        // Add doorman response with score delta
-        addMessage('doorman', data.doorman_response, data.score_delta);
+        // Update the last user message with score
+        updateLastUserMessageScore(data.score_delta);
+
+        // Add doorman response
+        addMessage('doorman', data.doorman_response);
         updateScoreDisplay(data.score_delta);
         updateGameState();
 
@@ -276,7 +279,7 @@ function addMessage(role, content, scoreDelta = null, animate = true) {
         : '/static/assets/user.png';
 
     let scoreHtml = '';
-    if (role === 'user' && scoreDelta !== null) {
+    if (role === 'user' && scoreDelta !== null && scoreDelta !== undefined) {
         const scoreClass = scoreDelta > 0 ? 'positive' : scoreDelta < 0 ? 'negative' : '';
         const scoreSign = scoreDelta > 0 ? '+' : '';
         scoreHtml = `<div class="message-score ${scoreClass}">${scoreSign}${scoreDelta}</div>`;
@@ -287,15 +290,39 @@ function addMessage(role, content, scoreDelta = null, animate = true) {
     if (!animate) messageEl.style.animation = 'none';
 
     messageEl.innerHTML = `
-        <img src="${avatarSrc}" alt="${role}" class="message-avatar">
+        <div class="avatar-wrapper">
+            <img src="${avatarSrc}" alt="${role}" class="message-avatar">
+            ${scoreHtml}
+        </div>
         <div class="message-content">
             ${escapeHtml(content)}
-            ${scoreHtml}
         </div>
     `;
 
     elements.messages.appendChild(messageEl);
     scrollToBottom();
+}
+
+function updateLastUserMessageScore(scoreDelta) {
+    if (scoreDelta === null || scoreDelta === undefined) return;
+
+    const userMessages = elements.messages.querySelectorAll('.message.user');
+    if (userMessages.length === 0) return;
+
+    const lastUserMessage = userMessages[userMessages.length - 1];
+    const avatarWrapper = lastUserMessage.querySelector('.avatar-wrapper');
+    if (!avatarWrapper) return;
+
+    // Check if score already exists
+    if (avatarWrapper.querySelector('.message-score')) return;
+
+    const scoreClass = scoreDelta > 0 ? 'positive' : scoreDelta < 0 ? 'negative' : '';
+    const scoreSign = scoreDelta > 0 ? '+' : '';
+    const scoreEl = document.createElement('div');
+    scoreEl.className = `message-score ${scoreClass}`;
+    scoreEl.textContent = `${scoreSign}${scoreDelta}`;
+
+    avatarWrapper.appendChild(scoreEl);
 }
 
 function clearMessages() {

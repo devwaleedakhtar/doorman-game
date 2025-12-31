@@ -247,12 +247,19 @@ body {
     flex-direction: row-reverse;
 }
 
+.avatar-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
 .message-avatar {
     width: 36px;
     height: 36px;
     border-radius: 50%;
     object-fit: cover;
-    flex-shrink: 0;
 }
 
 .message-content {
@@ -273,13 +280,24 @@ body {
 }
 
 .message-score {
-    font-size: 0.75rem;
-    margin-top: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 10px;
+    background: var(--bg-input);
     color: var(--text-secondary);
+    white-space: nowrap;
 }
 
-.message-score.positive { color: var(--accent-green); }
-.message-score.negative { color: var(--accent-red); }
+.message-score.positive {
+    background: rgba(76, 175, 80, 0.15);
+    color: var(--accent-green);
+}
+
+.message-score.negative {
+    background: rgba(229, 57, 53, 0.15);
+    color: var(--accent-red);
+}
 
 /* Typing Indicator */
 .typing-indicator {
